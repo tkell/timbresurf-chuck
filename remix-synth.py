@@ -1,47 +1,84 @@
 #!/usr/bin/env python
 # encoding: utf=8
 """
-test.py
+This chops things into segments, tatums, beats, or bars.  
+It writes audio files of each of those, and writes .txt.en files with the corresponding timbre data
 
-Simple test script for testing echonest remix.
-Outputs the first and second beat of each bar.  
-
-By Thor Kell, 2012-08-14.  (with huge thanks to Ben Lacker)
 """
 
 usage = """
 Usage: 
-    python test.py <input_filename> <output_filename>
-
+    python remix-split.py <segment|tatum|beat|bar> <input_filename>
 Example:
-    python test.py EverythingIs.mp3 EverythingIsOneandTwo.mp3
+    python remix-split.py EverythingIsGoingToBeOK.mp3 
 """
 
+import math
+import numpy
 import echonest.audio as audio
-import pickle
 
-def main():
-    f = open("a.save", 'r')
-    audiofile = pickle.load(f)
-    f.close()
+def main(input_filename):
+    audiofile = audio.LocalAudioFile(input_filename)
 
-    bars = audiofile.analysis.bars
+    if granularity == "segment":
+        all_audio = audiofile.analysis.segments
+    elif granularity == "tatum":
+        all_audio = audiofile.analysis.tatums
+    elif granularity == "beat":
+        all_audio = audiofile.analysis.beats
+    elif granularity == "bar":
+        all_audio = audiofile.analysis.bars
 
-    bar_counter = 0
-    
-    for bar in bars:
-        output_filename = "bar_%s" % bar_counter
-        bar_counter = bar_counter + 1
+    all_segments = audiofile.analysis.segments
 
-        collect = audio.AudioQuantumList()
-        collect.append(bar)
-        out = audio.getpieces(audiofile, collect)
-        out.encode(output_filename)
+    output_text_filename = "%ss%s" % (granularity, ".timbre")
+    f = open(output_text_filename, 'w')
+    counter = 0
+    for chunk in all_audio:
+        output_filename = "%s_%s" % (granularity, counter)
+        counter = counter + 1
         
-        if bar_counter > 3:
-            break
+        # Commented out for speed while I test the file-writing
+#        collect = audio.AudioQuantumList()
+#        collect.append(chunk)
+#        out = audio.getpieces(audiofile, collect)
+#        out.encode(output_filename)
 
+        # now I need to write things
+        # I am going to take timbre values 1 through 7, as 0 is just amplitude.
+        if granularity == "segment":
+            temp_timbre =  chunk.timbre[1:7]
+
+        # Work out how to get averages here
+        # There must be a better way to get segments from an audioQuanta...
+        temp_timbre = []
+        if granularity != "segment":
+            for segment in all_segments:
+                if segment.start >= chunk.start and segment.start < chunk.get_end():
+                    temp_timbre.append(segment.timbre[1:7])
+                elif segment.start > chunk.get_end():
+                    break
+        temp_timbre = numpy.array(temp_timbre)
+        timbre_list = list(temp_timbre.mean(axis=0))
+        timbre_list = [math.floor(t) for t in timbre_list]
+        f.write("%s\n" % list(timbre_list))
+        
+
+        # debugz to stop things
+        if counter >= 1:
+            break
+    f.close()
 
 if __name__ == '__main__':
     import sys
-    main()
+    try:
+        granularity = sys.argv[1]
+        inputFilename = sys.argv[2]
+    except :
+        print usage
+        sys.exit(-1)
+    if not granularity in ['segment', 'tatum', 'beat', 'bar']:
+        print usage
+        sys.exit(-1)
+    main(inputFilename)
+    
