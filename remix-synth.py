@@ -13,6 +13,7 @@ Example:
     python remix-split.py EverythingIsGoingToBeOK.mp3 
 """
 
+import os
 import math
 import numpy
 import echonest.audio as audio
@@ -38,35 +39,47 @@ def main(input_filename):
         output_filename = "%s_%s" % (granularity, counter)
         counter = counter + 1
         
-        # Commented out for speed while I test the file-writing
-#        collect = audio.AudioQuantumList()
-#        collect.append(chunk)
-#        out = audio.getpieces(audiofile, collect)
-#        out.encode(output_filename)
+        collect = audio.AudioQuantumList()
+        collect.append(chunk)
+        out = audio.getpieces(audiofile, collect)
+        out.encode(output_filename)
+        # Now convert to wave and remove the mp3 file
+        os.system("avconv -i " + output_filename + ".mp3" + " " +  output_filename + ".wav")
+        os.system("rm " + output_filename + ".mp3")
+        
 
-        # now I need to write things
+        # Now I need to write things
         # I am going to take timbre values 1 through 7, as 0 is just amplitude.
+        temp_timbre = []
         if granularity == "segment":
-            temp_timbre =  chunk.timbre[1:7]
+            temp_timbre = [chunk.timbre[1:7]] # This is needed to make things work with the numpy array stuff
+            print temp_timbre
 
         # Work out how to get averages here
         # There must be a better way to get segments from an audioQuanta...
-        temp_timbre = []
         if granularity != "segment":
             for segment in all_segments:
                 if segment.start >= chunk.start and segment.start < chunk.get_end():
                     temp_timbre.append(segment.timbre[1:7])
                 elif segment.start > chunk.get_end():
                     break
-        temp_timbre = numpy.array(temp_timbre)
-        timbre_list = list(temp_timbre.mean(axis=0))
-        timbre_list = [math.floor(t) for t in timbre_list]
-        f.write("%s\n" % list(timbre_list))
+            # This is if we have no segments that starts in the chunk
+            if not temp_timbre:
+                for segment in all_segments:
+                    if segment.start < chunk.start and segment.end > chunk.get_end():
+                        temp_timbre.append(segment.timbre[1:7])
+                        break
         
+        temp_timbre = numpy.array(temp_timbre)
+        if temp_timbre.size == 0:
+            temp_timbre = numpy.array([[0, 0, 0, 0, 0, 0]])
+        timbre_list = list(temp_timbre.mean(axis=0))
+        timbre_list = [str(math.floor(t)) for t in timbre_list]
 
-        # debugz to stop things
-        if counter >= 1:
-            break
+        # Yes, I am writing one number per line.  Shhh.  ChucK's string reading abilities are awful
+        for timbre in timbre_list:
+            f.write("%s\n" % timbre) 
+    
     f.close()
 
 if __name__ == '__main__':

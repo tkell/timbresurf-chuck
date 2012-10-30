@@ -1,3 +1,5 @@
+// from https://ccrma.stanford.edu/courses/220a/homework/1/m220a-DataReader.ck
+
 "test.txt" => string inFilename;
 
 FileIO @ in;
