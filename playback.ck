@@ -6,11 +6,40 @@ Run only AFTER turning the kinect on.
 */
 
 // USEAGE:  
-"Useage:  chuck playback.ck <filename> <bars|beats|tatums|segments>" => string useage;
+"Useage:  chuck playback.ck:<filename>:<bar|beat|tatum|segment>" => string useage;
 if (me.args() != 2) {
     <<< useage >>>;
     // i'd like to quit here, I sure would...
 }
+
+// Globals that I can use in both 
+
+0 => int input_1;
+
+// Concurrent OSC listener
+fun void osc_shred() {
+    // Set up OSC
+    OscRecv recv;
+    // use port 12345
+    12345 => recv.port;
+    // start listening (launch thread)
+    recv.listen();
+
+    // Create an address in the receiver, store in new variable
+    // Chuck seems to only like one point of data per variable
+    // Yeah, we'll eventually need 6 of these.
+    recv.event( "/mouse/position/x, i" ) @=> OscEvent recX;
+
+    // I'll need to fit everything into one message, I think...
+    while (true) {
+        recX => now;
+        if (recX.nextMsg() != 0) {
+            recX.getInt()=> input_1;
+            // <<< "from osc: ", recX.getInt()>>>;
+        } 
+    }
+}
+
 
 // construct the output patch
 SndBuf buf => Gain g => dac;
@@ -56,56 +85,28 @@ while (in.eof() != true) {
     if (theLine != "") {
     Std.atof(theLine) => float timbre_value;
     timbre_value => timbre[timbre_counter];
-    <<< timbre_counter, ": ", timbre[timbre_counter] >>>;
     timbre_counter + 1 => timbre_counter;
     }
 }
 in.close();
 
-
-// Set up OSC
-OscRecv recv;
-// use port 12345
-12345 => recv.port;
-// start listening (launch thread)
-recv.listen();
-
-// Create an address in the receiver, store in new variable
-// Chuck seems to only like one point of data per variable
-// Yeah, we'll eventually need 6 of these.
-recv.event( "/mouse/position/x, i" ) @=> OscEvent recX;
-recv.event( "/mouse/position/y, i" ) @=> OscEvent recY;
+// Start the OSC listener
+spork ~ osc_shred();
 
 0 => int timbre_index;
-
-0 => int input_1;
-0 => int input_2;
 for( 0 => int index; index < file_length ; index++ )
 {
     // Now I have to find the right timbre values
     index * 6 => timbre_index;
     // <<< timbre[timbre_index], timbre[timbre_index + 1], timbre[timbre_index + 2],  timbre[timbre_index + 3], timbre[timbre_index + 4], timbre[timbre_index + 4] >>>;
 
-    
-    // This needs to get the most RECENT, not the top of the queue.  Oh dear.  
-    // maybe I can put this in another shred. 
-    // shreds share global variables with their children
-    // so for this maybe I'd define my things, spork an OSC thread, and advance time in there per-message?
-    // TO TRY LATER!
-    if (recX.nextMsg() != 0) {
-        recX.getInt() => input_1;
-    }
-    if (recY.nextMsg() != 0) {
-        recX.getInt() => input_2;
-    }
+    <<< "Compare input to timbre:  ", input_1, timbre[timbre_index], Std.fabs(timbre[timbre_index] - input_1) >>>;
 
     // If our conditional deals with gain, I think our life gets much easier..
     // This also means that as we move away from things, we can get louder or softer, if we're doing the 'hunt the timbre' game
     
     // Let's mock things up in ONE DIMENSION
-    <<< input_1 >>>;
-    <<< timbre[timbre_index] >>>;
-    if ( false) {   
+    if ( Std.fabs(timbre[timbre_index] - input_1) > 50) {   
         0.0 => g.gain;
     }
     else {
