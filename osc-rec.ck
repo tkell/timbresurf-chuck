@@ -11,7 +11,6 @@ recv.listen();
 recv.event( "/mouse/position/x, i" ) @=> OscEvent recX;
 
 // I'll need to fit everything into one message, I think...
-
 while (true) {
     recX => now;
     if (recX.nextMsg() != 0) {

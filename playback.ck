@@ -15,7 +15,8 @@ if (me.args() != 2) {
 // Globals that I can use in both 
 
 0 => int input_1;
-
+0 => int distance_1;
+0.0 => float gain_modifier;
 // Concurrent OSC listener
 fun void osc_shred() {
     // Set up OSC
@@ -39,6 +40,10 @@ fun void osc_shred() {
         } 
     }
 }
+
+// Set up OSC sender
+OscSend oscSender;
+oscSender.setHost("localhost", 23456);
 
 
 // construct the output patch
@@ -96,21 +101,30 @@ spork ~ osc_shred();
 0 => int timbre_index;
 for( 0 => int index; index < file_length ; index++ )
 {
+    // At the top of each bar, I send a tick to the oFX visualizer
+    oscSender.startMsg("visuals/tick");
+
     // Now I have to find the right timbre values
     index * 6 => timbre_index;
     // <<< timbre[timbre_index], timbre[timbre_index + 1], timbre[timbre_index + 2],  timbre[timbre_index + 3], timbre[timbre_index + 4], timbre[timbre_index + 4] >>>;
-
-    <<< "Compare input to timbre:  ", input_1, timbre[timbre_index], Std.fabs(timbre[timbre_index] - input_1) >>>;
+    Std.fabs(timbre[timbre_index] - input_1) => float distance_1;
+    <<< "Compare input to timbre:  ", input_1, timbre[timbre_index], distance_1 >>>;
 
     // If our conditional deals with gain, I think our life gets much easier..
     // This also means that as we move away from things, we can get louder or softer, if we're doing the 'hunt the timbre' game
     
     // Let's mock things up in ONE DIMENSION
-    if ( Std.fabs(timbre[timbre_index] - input_1) > 50) {   
+    if (distance_1 > 100) {   
+       // <<< "Distance above 100, gain is 0.0" >>>;
         0.0 => g.gain;
     }
-    else {
-        0.5 => g.gain;
+    if (distance_1 == 0) {
+        //<<< "Distance is zero, gain is 1.0" >>>;
+        1.0 => g.gain;
+    }
+    if (distance_1 > 0 && distance_1 < 100 ) {
+        //<<< "Distance is between 0 and 100, gain is", 1 - (distance_1 / 100.0) >>>;
+        1 - (distance_1 / 100.0) => g.gain;
     }
     // Note that this will break if we take it out of the directory
     path + chunk_filename_base + index + ".wav" => buf.read;  

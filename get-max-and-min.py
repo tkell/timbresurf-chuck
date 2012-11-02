@@ -4,7 +4,7 @@
 This gets me the maxs and mins.
 I will then hard-code them into oFX, because I am tacky like that
 """
-
+import math
 
 def main(inputFiles):
     maxes = [0, 0, 0, 0, 0, 0]
@@ -12,13 +12,14 @@ def main(inputFiles):
 
     for inputFile in inputFiles:
         theFile = open(inputFile, 'r')
+        index = 0
         for line in theFile:
-            theList = eval(line.strip()) # hahahahaha
-            for index, timbre in enumerate(theList):
-                if timbre > maxes[index]:
-                    maxes[index] = timbre
-                if timbre < mins[index]:
-                    mins[index] = timbre
+            data = math.floor(float(line.strip()))
+            if data > maxes[index]:
+                maxes[index] = data
+            if data < mins[index]:
+                mins[index] = data
+            index = (index + 1) % 6
     
     print "maximums:  %s" % maxes
     print "minimums:  %s" % mins
