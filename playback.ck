@@ -7,6 +7,7 @@ Run only AFTER turning the kinect on.
 
 // USEAGE:  
 "Useage:  chuck playback.ck:<filename>:<bar|beat|tatum|segment>" => string useage;
+
 if (me.args() != 2) {
     <<< useage >>>;
     // i'd like to quit here, I sure would...
@@ -60,6 +61,7 @@ if (me.arg(0) == "test") {
 me.arg(1) => string segment_type;
 path + segment_type + "s.timbre" => string timbre_filename;
 segment_type + "_" => string chunk_filename_base;
+
 
 // How many chunks of audio do we have ?
 0 => int file_length;

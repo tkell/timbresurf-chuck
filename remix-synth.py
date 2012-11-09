@@ -36,7 +36,7 @@ def main(input_filename):
     f = open(output_text_filename, 'w')
     counter = 0
     for chunk in all_audio:
-        output_filename = "%s_%s" % (granularity, counter)
+        output_filename = "%s_%s.wav" % (granularity, counter)
         counter = counter + 1
         
         collect = audio.AudioQuantumList()
@@ -44,8 +44,8 @@ def main(input_filename):
         out = audio.getpieces(audiofile, collect)
         out.encode(output_filename)
         # Now convert to wave and remove the mp3 file
-        os.system("avconv -i " + output_filename + ".mp3" + " " +  output_filename + ".wav")
-        os.system("rm " + output_filename + ".mp3")
+        # os.system("avconv -i " + output_filename + ".mp3" + " " +  output_filename + ".wav")
+        # os.system("rm " + output_filename + ".mp3")
         
 
         # Now I need to write things
