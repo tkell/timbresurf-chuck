@@ -13,6 +13,8 @@ if (me.args() != 2) {
     // i'd like to quit here, I sure would...
 }
 
+0 => float score;
+
 // Globals that I can use in both 
 int right_hand[3]; // the right hand controls dimensions 1, 2, 3
 int left_hand[3]; // the right hand controls dimensions 4, 5, 6
@@ -94,15 +96,14 @@ in.close();
 // Start the OSC listener
 spork ~ osc_shred();
 
+// Begin the main loop!
 0 => int timbre_index;
-for( 0 => int index; index < file_length ; index++ )
-{
+for( 0 => int index; index < file_length ; index++ ) {
     // At the top of each bar, I send a tick to the oFX visualizer
     oscSender.startMsg("visuals/tick");
 
     // Now I have to find the right timbre values
     index * 6 => timbre_index;
-    // <<< timbre[timbre_index], timbre[timbre_index + 1], timbre[timbre_index + 2],  timbre[timbre_index + 3], timbre[timbre_index + 4], timbre[timbre_index + 4] >>>;
     Std.fabs(timbre[timbre_index] - right_hand[0]) => distances[0];
     Std.fabs(timbre[timbre_index + 1] - right_hand[1]) => distances[1];
     <<< "X distance:  ", distances[0] >>>;
@@ -130,8 +131,12 @@ for( 0 => int index; index < file_length ; index++ )
         <<< "Distance is between 0 and playback_distance, gain is", 1 - (the_distance / playback_distance) >>>;
         1 - (the_distance / playback_distance) => g.gain;
     }
+
+    // Something cute about scoring here...
+    score + the_distance => score;
+
     // Note that this will break if we take it out of the directory
     path + chunk_filename_base + index + ".wav" => buf.read;  
-    buf.length() => now;
+    buf.length() => now;   
 }
 
