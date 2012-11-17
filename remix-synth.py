@@ -42,18 +42,13 @@ def main(input_filename):
         collect = audio.AudioQuantumList()
         collect.append(chunk)
         out = audio.getpieces(audiofile, collect)
-        out.encode(output_filename)
-        # Now convert to wave and remove the mp3 file
-        # os.system("avconv -i " + output_filename + ".mp3" + " " +  output_filename + ".wav")
-        # os.system("rm " + output_filename + ".mp3")
-        
+        out.encode(output_filename)     
 
         # Now I need to write things
         # I am going to take timbre values 1 through 7, as 0 is just amplitude.
         temp_timbre = []
         if granularity == "segment":
             temp_timbre = [chunk.timbre[1:7]] # This is needed to make things work with the numpy array stuff
-            print temp_timbre
 
         # Work out how to get averages here
         # There must be a better way to get segments from an audioQuanta...
