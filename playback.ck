@@ -6,7 +6,7 @@ Run only AFTER turning the kinect on.
 */
 
 // USEAGE:  
-"Useage:  chuck playback.ck:<filename>:<bar|beat|tatum|segment>" => string useage;
+"Useage:  chuck playback.ck:<filename>:<bar|beat|tatum|segment>:<mode>" => string useage;
 
 if (me.args() != 2) {
     <<< useage >>>;
@@ -98,54 +98,92 @@ in.close();
 // Start the OSC listener
 spork ~ osc_shred();
 
-// Begin the main loop!
-0 => int timbre_index;
-for( 0 => int index; index < file_length ; index++ ) {
-    // At the top of each bar, I send a tick to the oFX visualizer
-    oscSender.startMsg("visuals/tick");
 
-    // Now I have to find the right timbre values
-    index * 6 => timbre_index;
-    Std.fabs(timbre[timbre_index] - right_hand[0]) => distances[0];
-    Std.fabs(timbre[timbre_index + 1] - right_hand[1]) => distances[1];
-    Std.fabs(timbre[timbre_index + 2] - right_hand[2]) => distances[2];
-    
-    <<< "from osc: ", right_hand[0]>>>;
-    <<< "from osc: ", right_hand[1]>>>;
-    <<< "from osc: ", right_hand[2]>>>;
+// Play mode:  we loop over the song, chunk by chunk
+if (me.arg(2) == "P") {
+    0 => int timbre_index;
+    for( 0 => int index; index < file_length ; index++ ) {
+        // At the top of each bar, I send a tick to the oFX visualizer
+        oscSender.startMsg("visuals/tick");
 
-    <<< "X distance:  ", distances[0] >>>;
-    <<< "Y Distance:  ", distances[1] >>>;
-    <<< "Z Distance:  ", distances[2] >>>;
+        // Now I have to find the right timbre values
+        index * 6 => timbre_index;
+        Std.fabs(timbre[timbre_index] - right_hand[0]) => distances[0];
+        Std.fabs(timbre[timbre_index + 1] - right_hand[1]) => distances[1];
+        Std.fabs(timbre[timbre_index + 2] - right_hand[2]) => distances[2];
+        
+        <<< "from osc: ", right_hand[0]>>>;
+        <<< "from osc: ", right_hand[1]>>>;
+        <<< "from osc: ", right_hand[2]>>>;
 
-    // Compute the distance:  Euclidan for now
-    // Maybe I wanna do two distances, one per hand?  Or is that the same thing?
-    Math.sqrt(distances[0] * distances[0] + distances[1] * distances[1] + distances[2] * distances[2]) => the_distance;
-    <<< "The Euclidian distance:  ", the_distance, "\n" >>>;
+        <<< "X distance:  ", distances[0] >>>;
+        <<< "Y Distance:  ", distances[1] >>>;
+        <<< "Z Distance:  ", distances[2] >>>;
 
-    // If our conditional deals with gain, I think our life gets much easier..
-    // This also means that as we move away from things, we can get louder or softer, if we're doing the 'hunt the timbre' game
-    
-    // I will need to tune the heck out of this value
-    50.0 => float playback_distance;
-    if (the_distance > playback_distance) {   
-        <<< "Distance above playback_distance, gain is 0.0" >>>;
-        0.0 => g.gain;
+        // Compute the distance:  Euclidan for now
+        // Maybe I wanna do two distances, one per hand?  Or is that the same thing?
+        Math.sqrt(distances[0] * distances[0] + distances[1] * distances[1] + distances[2] * distances[2]) => the_distance;
+        <<< "The Euclidian distance:  ", the_distance, "\n" >>>;
+
+        // If our conditional deals with gain, I think our life gets much easier..
+        // This also means that as we move away from things, we can get louder or softer, if we're doing the 'hunt the timbre' game
+        
+        // I will need to tune the heck out of this value
+        50.0 => float playback_distance;
+        if (the_distance > playback_distance) {   
+            <<< "Distance above playback_distance, gain is 0.0" >>>;
+            0.0 => g.gain;
+        }
+        if (the_distance == 0) {
+            <<< "Distance is zero, gain is 1.0" >>>;
+            1.0 => g.gain;
+        }
+        if (the_distance > 0 && the_distance < playback_distance ) {
+            <<< "Distance is between 0 and playback_distance, gain is", 1 - (the_distance / playback_distance) >>>;
+            1 - (the_distance / playback_distance) => g.gain;
+        }
+
+        // Something cute about scoring here...
+        score + the_distance => score;
+
+        // Note that this will break if we take it out of the directory
+        path + chunk_filename_base + index + ".wav" => buf.read;  
+        buf.length() => now;   
     }
-    if (the_distance == 0) {
-        <<< "Distance is zero, gain is 1.0" >>>;
-        1.0 => g.gain;
-    }
-    if (the_distance > 0 && the_distance < playback_distance ) {
-        <<< "Distance is between 0 and playback_distance, gain is", 1 - (the_distance / playback_distance) >>>;
-        1 - (the_distance / playback_distance) => g.gain;
-    }
+}
 
-    // Something cute about scoring here...
-    score + the_distance => score;
+// Explore mode:  we synthesize the nearest chunks until the user tells us to stop
+else if (me.arg(2) == "E") {
+    0 => int timbre_index;
+    float min_distance;
+    while (true) {
+        // find the shortest distance
+        // This is only two dimensions on the right hand, for now
+        0 => timbre_index;
+        1000000.0 => min_distance;
+        for (0 => int i; i < file_length; i + 6 => i) {
+            Std.fabs(right_hand[0] - timbre[i]) => distances[0];
+            Std.fabs(right_hand[1] - timbre[i + 1]) => distances[1];
+            Std.fabs(timbre[timbre_index + 2] - right_hand[2]) => distances[2];
+            Math.sqrt(distances[0] * distances[0] + distances[1] * distances[1] + distances[2] * distances[2]) => the_distance;
 
-    // Note that this will break if we take it out of the directory
-    path + chunk_filename_base + index + ".wav" => buf.read;  
-    buf.length() => now;   
+            if (the_distance < min_distance) {
+                the_distance => min_distance;
+                i => timbre_index;
+            }
+        }
+
+        <<< "from osc: ", right_hand[0]>>>;
+        <<< "from osc: ", right_hand[1]>>>;
+        <<< "from osc: ", right_hand[2]>>>;
+        <<< "the index: ", timbre_index>>>;
+        <<< "the distance: ", min_distance>>>;
+        <<< "the timbre: ", timbre[timbre_index]>>>;    
+        <<< "the timbre: ", timbre[timbre_index + 1]>>>;
+        <<< "the number of chunks: ", file_length>>>;
+        // Note that this will break if we take it out of the directory
+        path + chunk_filename_base +  timbre_index + ".wav" => buf.read;  
+        buf.length() => now;   
+    }
 }
 
