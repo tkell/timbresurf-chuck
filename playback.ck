@@ -29,9 +29,8 @@ fun void osc_shred() {
     recv.listen();
 
     // Create an address in the receiver, store in new variable
-    // Chuck seems to only like one point of data per variable
-    // Yeah, we'll eventually need 6 of these.
-    recv.event("/mouse/position, i, i") @=> OscEvent recX;
+    // Yeah, we'll eventually need 6 'i' values
+    recv.event("/mouse/position, i, i, i") @=> OscEvent recX;
 
     // I'll need to fit everything into one message, I think...
     while (true) {
@@ -39,8 +38,7 @@ fun void osc_shred() {
         if (recX.nextMsg() != 0) {
             recX.getInt()=> right_hand[0];
             recX.getInt()=> right_hand[1];
-            //<<< "from osc: ", right_hand[0]>>>;
-            //<<< "from osc: ", right_hand[1]>>>;
+            recX.getInt()=> right_hand[2];
         } 
     }
 }
@@ -55,11 +53,15 @@ SndBuf buf => Gain g => dac;
 // set the starting gain
 .5 => g.gain;
 
-// Set path, timbre fil[ename, and audio filename up based on input arguments
+// Set path, timbre filename, and audio filename up based on input arguments
 "/" => string path;
 if (me.arg(0) == "test") {
     "audio/test/" => path;
 }
+if (me.arg(0) == "billiejean") {
+    "audio/billiejean/" => path;
+}
+
 me.arg(1) => string segment_type;
 path + segment_type + "s.timbre" => string timbre_filename;
 segment_type + "_" => string chunk_filename_base;
@@ -106,19 +108,26 @@ for( 0 => int index; index < file_length ; index++ ) {
     index * 6 => timbre_index;
     Std.fabs(timbre[timbre_index] - right_hand[0]) => distances[0];
     Std.fabs(timbre[timbre_index + 1] - right_hand[1]) => distances[1];
+    Std.fabs(timbre[timbre_index + 2] - right_hand[2]) => distances[2];
+    
+    <<< "from osc: ", right_hand[0]>>>;
+    <<< "from osc: ", right_hand[1]>>>;
+    <<< "from osc: ", right_hand[2]>>>;
+
     <<< "X distance:  ", distances[0] >>>;
     <<< "Y Distance:  ", distances[1] >>>;
+    <<< "Z Distance:  ", distances[2] >>>;
 
     // Compute the distance:  Euclidan for now
     // Maybe I wanna do two distances, one per hand?  Or is that the same thing?
-    Math.sqrt(distances[0] * distances[0] + distances[1] * distances[1]) => the_distance;
+    Math.sqrt(distances[0] * distances[0] + distances[1] * distances[1] + distances[2] * distances[2]) => the_distance;
     <<< "The Euclidian distance:  ", the_distance, "\n" >>>;
 
     // If our conditional deals with gain, I think our life gets much easier..
     // This also means that as we move away from things, we can get louder or softer, if we're doing the 'hunt the timbre' game
     
     // I will need to tune the heck out of this value
-    25.0 => float playback_distance;
+    50.0 => float playback_distance;
     if (the_distance > playback_distance) {   
         <<< "Distance above playback_distance, gain is 0.0" >>>;
         0.0 => g.gain;
