@@ -8,7 +8,7 @@ Run only AFTER turning the kinect on.
 // USEAGE:  
 "Useage:  chuck playback.ck:<filename>:<bar|beat|tatum|segment>:<mode>" => string useage;
 
-if (me.args() != 2) {
+if (me.args() != 3) {
     <<< useage >>>;
     // i'd like to quit here, I sure would...
 }
@@ -100,7 +100,7 @@ spork ~ osc_shred();
 
 
 // Play mode:  we loop over the song, chunk by chunk
-if (me.arg(2) == "P") {
+if (me.arg(2) == "P" || me.arg(2) == "V") {
     0 => int timbre_index;
     for( 0 => int index; index < file_length ; index++ ) {
         // At the top of each bar, I send a tick to the oFX visualizer
@@ -125,6 +125,11 @@ if (me.arg(2) == "P") {
         Math.sqrt(distances[0] * distances[0] + distances[1] * distances[1] + distances[2] * distances[2]) => the_distance;
         <<< "The Euclidian distance:  ", the_distance, "\n" >>>;
 
+        // If we're in visualize mode, we just play back
+        if (me.arg(2) == "V") {
+             0.0 => the_distance;
+        }
+    
         // If our conditional deals with gain, I think our life gets much easier..
         // This also means that as we move away from things, we can get louder or softer, if we're doing the 'hunt the timbre' game
         
