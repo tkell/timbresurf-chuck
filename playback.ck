@@ -1,8 +1,7 @@
 /*
-God bless Ben Lacker for teaching me to write things well
 This is the main file for running Timbre Hero. 
 You give it a filename and a difficulty.
-Run only AFTER turning the kinect on.  
+Run only AFTER booting the oFX app
 */
 
 // USEAGE:  
@@ -99,6 +98,11 @@ in.close();
 spork ~ osc_shred();
 
 
+// I will need to tune the heck out of this value
+50.0 => float playback_distance;
+// This will help with my variation
+-1 => int playback_index;
+
 // Play mode:  we loop over the song, chunk by chunk
 if (me.arg(2) == "P" || me.arg(2) == "V") {
     0 => int timbre_index;
@@ -132,9 +136,6 @@ if (me.arg(2) == "P" || me.arg(2) == "V") {
     
         // If our conditional deals with gain, I think our life gets much easier..
         // This also means that as we move away from things, we can get louder or softer, if we're doing the 'hunt the timbre' game
-        
-        // I will need to tune the heck out of this value
-        50.0 => float playback_distance;
         if (the_distance > playback_distance) {   
             <<< "Distance above playback_distance, gain is 0.0" >>>;
             0.0 => g.gain;
@@ -162,14 +163,13 @@ else if (me.arg(2) == "E") {
     0 => int timbre_index;
     float min_distance;
     while (true) {
-        // find the shortest distance
-        // This is only two dimensions on the right hand, for now
+        // Find the shortest distance - This is only two dimensions on the right hand, for now
         0 => timbre_index;
         1000000.0 => min_distance;
         for (0 => int i; i < file_length; i + 6 => i) {
             Std.fabs(right_hand[0] - timbre[i]) => distances[0];
             Std.fabs(right_hand[1] - timbre[i + 1]) => distances[1];
-            Std.fabs(timbre[timbre_index + 2] - right_hand[2]) => distances[2];
+            Std.fabs(right_hand[2] - timbre[i + 2]) => distances[2];
             Math.sqrt(distances[0] * distances[0] + distances[1] * distances[1] + distances[2] * distances[2]) => the_distance;
 
             if (the_distance < min_distance) {
@@ -183,9 +183,16 @@ else if (me.arg(2) == "E") {
         <<< "from osc: ", right_hand[2]>>>;
         <<< "the index: ", timbre_index>>>;
         <<< "the distance: ", min_distance>>>;
-        <<< "the timbre: ", timbre[timbre_index]>>>;    
+        <<< "the timbre: ", timbre[timbre_index]>>>;
         <<< "the timbre: ", timbre[timbre_index + 1]>>>;
+        <<< "the timbre: ", timbre[timbre_index + 2]>>>;
         <<< "the number of chunks: ", file_length>>>;
+        // Turn things down if we're a long way from everything.
+        1.0 => g.gain;
+        if (min_distance > playback_distance * 2) {
+            0.0 => g.gain;
+        }
+
         // Note that this will break if we take it out of the directory
         path + chunk_filename_base +  timbre_index + ".wav" => buf.read;  
         buf.length() => now;   
