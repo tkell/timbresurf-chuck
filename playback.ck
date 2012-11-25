@@ -163,20 +163,22 @@ else if (me.arg(2) == "E") {
     0 => int timbre_index;
     float min_distance;
     while (true) {
-        // Find the shortest distance - This is only two dimensions on the right hand, for now
+        // Find the shortest distance - This is 3 dimensions on the right hand, for now
         0 => timbre_index;
         1000000.0 => min_distance;
-        for (0 => int i; i < file_length; i + 6 => i) {
-            Std.fabs(right_hand[0] - timbre[i]) => distances[0];
+        for (0 => int i; i < timbre.cap(); i + 6 => i) {
+            Std.fabs(right_hand[0] - timbre[i + 0]) => distances[0];
             Std.fabs(right_hand[1] - timbre[i + 1]) => distances[1];
             Std.fabs(right_hand[2] - timbre[i + 2]) => distances[2];
             Math.sqrt(distances[0] * distances[0] + distances[1] * distances[1] + distances[2] * distances[2]) => the_distance;
 
             if (the_distance < min_distance) {
                 the_distance => min_distance;
-                i => timbre_index;
+                i / 6 => timbre_index;
             }
         }
+        oscSender.startMsg("minimum/index, i");
+        oscSender.addInt(timbre_index);
 
         <<< "from osc: ", right_hand[0]>>>;
         <<< "from osc: ", right_hand[1]>>>;
@@ -189,9 +191,6 @@ else if (me.arg(2) == "E") {
         <<< "the number of chunks: ", file_length>>>;
         // Turn things down if we're a long way from everything.
         1.0 => g.gain;
-        if (min_distance > playback_distance * 2) {
-            0.0 => g.gain;
-        }
 
         // Note that this will break if we take it out of the directory
         path + chunk_filename_base +  timbre_index + ".wav" => buf.read;  
