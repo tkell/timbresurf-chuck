@@ -16,7 +16,7 @@ if (me.args() != 3) {
 
 // Globals that I can use in both 
 int right_hand[3]; // the right hand controls dimensions 1, 2, 3
-int left_hand[3]; // the right hand controls dimensions 4, 5, 6
+0.75 => float left_hand_y;
 [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] @=> float distances[];
 0.0 => float the_distance;
 0.0 => float gain_modifier;
@@ -38,6 +38,7 @@ fun void osc_shred() {
             recX.getInt()=> right_hand[0];
             recX.getInt()=> right_hand[1];
             recX.getInt()=> right_hand[2];
+            recX.getFloat()=> left_hand_y;
         } 
     }
 }
@@ -59,6 +60,12 @@ if (me.arg(0) == "test") {
 }
 if (me.arg(0) == "billiejean") {
     "audio/billiejean/" => path;
+}
+if (me.arg(0) == "einekleine") {
+    "audio/einekleine/" => path;
+}
+if (me.arg(0) == "harddaysnight") {
+    "audio/harddaysnight/" => path;
 }
 
 me.arg(1) => string segment_type;
@@ -188,9 +195,9 @@ else if (me.arg(2) == "E") {
         <<< "the timbre: ", timbre[timbre_index]>>>;
         <<< "the timbre: ", timbre[timbre_index + 1]>>>;
         <<< "the timbre: ", timbre[timbre_index + 2]>>>;
-        <<< "the number of chunks: ", file_length>>>;
-        // Turn things down if we're a long way from everything.
-        1.0 => g.gain;
+        <<< "the gain: ", left_hand_y>>>;
+        // Turn things up or down based on the left hand
+        left_hand_y => g.gain;
 
         // Note that this will break if we take it out of the directory
         path + chunk_filename_base +  timbre_index + ".wav" => buf.read;  

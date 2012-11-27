@@ -2,7 +2,7 @@
 # encoding: utf=8
 """
 This chops things into segments, tatums, beats, or bars.  
-It writes audio files of each of those, and writes .txt.en files with the corresponding timbre data
+It writes audio files of each of those, and writes .timbre files with the corresponding timbre data
 
 """
 
