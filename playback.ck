@@ -26,11 +26,7 @@ fun void osc_shred() {
     OscRecv recv;
     12345 => recv.port;
     recv.listen();
-
-    // Create an address in the receiver, store in new variable
-    // Yeah, we'll eventually need 6 'i' values
-    recv.event("/mouse/position, i, i, i") @=> OscEvent recX;
-
+    recv.event("/position, i, i, i, f") @=> OscEvent recX;
     // I'll need to fit everything into one message, I think...
     while (true) {
         recX => now;
