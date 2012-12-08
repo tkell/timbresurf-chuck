@@ -63,6 +63,9 @@ if (me.arg(0) == "einekleine") {
 if (me.arg(0) == "harddaysnight") {
     "audio/harddaysnight/" => path;
 }
+if (me.arg(0) == "tangerine") {
+    "audio/tangerine/" => path;
+}
 
 me.arg(1) => string segment_type;
 path + segment_type + "s.timbre" => string timbre_filename;
